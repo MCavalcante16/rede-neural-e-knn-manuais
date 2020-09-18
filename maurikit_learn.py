@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn import svm, datasets
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import plot_confusion_matrix as confusion_matrix
+from scipy.spatial import distance
 
 class LogisticRegression_GRAD():
     def __init__(self):
@@ -168,7 +169,7 @@ def sigmoid_derived(x):
     return sigmoid(x) * (1 - sigmoid(x))
 
 class redeMLP():
-    def __init__(self, input_layer_size=3, hidden_layer_size=4):
+    def __init__(self, input_layer_size=2, hidden_layer_size=4):
         self.e = {}
         self.w = np.ones((hidden_layer_size, input_layer_size + 1))
         self.m = np.ones((1, hidden_layer_size + 1))
@@ -177,7 +178,7 @@ class redeMLP():
         self.output_layer_size = 1
         self._estimator_type = "classifier"
         
-    def fit(self, X, y, learning_rate=0.02, epochs=50):
+    def fit(self, X, y, learning_rate=0.01, epochs=50):
         #Bias
         bias = np.full((X.shape[0], 1), -1)
         X = np.hstack((bias,X))
@@ -196,8 +197,6 @@ class redeMLP():
                     delta_i = sigmoid_derived(np.sum(X[j] * self.w[wIndex, :])) * np.sum(delta_k * self.m[0,wIndex])
                     self.w[wIndex,:] = self.w[wIndex, :] + learning_rate * delta_i * X[j]
                     
-        print("w:", self.w)
-        print("m:", self.m)
 
     def forward(self, X):
         #Saídas
@@ -257,7 +256,91 @@ class redeMLP():
         
         return self.y_pred
             
+        
+class knn():
+    def __init__(self, k=2):
+        self._estimator_type = "classifier"
+        self.k = k
+        pass
+    
+    def fit(self, X, y):
+        self.X_train = X
+        self.y_train = y
+        
+    def predict(self, X):
+        result = np.array([])
+        for x in X:
+            #Calculo dos vizinhos mais proximos
+            k_nearest_classes = np.full((1,self.k), -1)
+            k_nearest_values = np.full((1,self.k), np.inf)
+            for x_train_index in range(0, self.X_train.shape[0]):
+                this_distance = distance.euclidean(x, self.X_train[x_train_index])
+                this_classe = self.y_train[x_train_index]
                 
+                for k_nearest_index in range(0, self.k):
+                    if this_distance < k_nearest_values[0,k_nearest_index] :
+                        classe_anterior = k_nearest_classes[0, k_nearest_index]
+                        distancia_anterior = k_nearest_values[0,k_nearest_index]
+                        
+                        k_nearest_classes[0,k_nearest_index] = this_classe
+                        k_nearest_values[0,k_nearest_index] = this_distance
+                        
+                        this_classe = classe_anterior
+                        this_distance = distancia_anterior
+            
+            
+            #Calcula a classe de maior ocorrência
+            maiorClasse = 0
+            maiorQuantidade = 0
+            for classe in np.unique(self.y_train):
+                classeQtd = np.sum(k_nearest_classes == classe)
+                if classeQtd > maiorQuantidade:
+                    maiorQuantidade = classeQtd
+                    maiorClasse = classe
+                
+
+            result = np.append(result, maiorClasse)
+            
+        return result;
+                        
+        
+def k_fold (X, y, k, metodo):
+    e = np.array([])
+    porcentagem = 1/k
+    qtdPorcentagem = int(X.shape[0] * porcentagem)
+    
+    for i in range(0,k):
+        porcent_init = qtdPorcentagem * i
+        porcent_end = qtdPorcentagem * (i+1)
+        
+        X_train = X[porcent_init:porcent_end, :]
+        y_train = y[porcent_init:porcent_end]
+        
+        X_test = X[:porcent_init, :]
+        X_test = np.vstack((X_test, X[porcent_end:, :]))
+            
+        y_test = y[0:porcent_init]
+        y_test = np.append(y_test, y[porcent_end:])
+        
+        
+        metodo.fit(X_train, y_train)
+        y_pred = metodo.predict(X_test)
+        
+        e = np.append(e, acuracia(y_test, y_pred))
+                      
+    return print("Erros: ", e);
+       
+        
+        
+    
+    
+           
+       
+ 
+              
+                
+            
+       
         
 
 
